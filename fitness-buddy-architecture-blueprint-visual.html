@@ -1,0 +1,910 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Fitness Buddy — Architecture Blueprint</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0d1117;
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    color: #e6edf3;
+    min-height: 100vh;
+    padding: 32px 20px 48px;
+  }
+
+  /* ── Page wrapper ── */
+  .page { max-width: 960px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .header-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: #58a6ff;
+    margin-bottom: 10px;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #58a6ff 0%, #a371f7 50%, #3fb950 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.25;
+    margin-bottom: 8px;
+  }
+  .header p { color: #8b949e; font-size: 13.5px; }
+
+  /* ── Section label ── */
+  .section-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #484f58;
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #21262d;
+  }
+
+  /* ── Main architecture diagram ── */
+  .arch-diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 36px;
+  }
+
+  /* Tier row */
+  .tier-row {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  /* Vertical connector between tiers */
+  .tier-connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 6px 0;
+    position: relative;
+  }
+  .conn-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .conn-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .conn-dash {
+    width: 2px;
+    height: 8px;
+    border-radius: 1px;
+  }
+  .conn-arrow {
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+  }
+  .conn-label {
+    font-size: 10.5px;
+    color: #484f58;
+    white-space: nowrap;
+    font-family: "SF Mono", "Fira Code", monospace;
+  }
+
+  /* Tier card */
+  .tier-card {
+    flex: 1;
+    border-radius: 10px;
+    border: 1px solid;
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .tier-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 10px 10px 0 0;
+  }
+
+  /* Tier variants */
+  .tier-user    { background: #161b22; border-color: #30363d; }
+  .tier-user::before    { background: #58a6ff; }
+  .tier-frontend { background: #161b22; border-color: #2563b0; }
+  .tier-frontend::before { background: linear-gradient(90deg,#58a6ff,#1e90ff); }
+  .tier-backend  { background: #161b22; border-color: #238636; }
+  .tier-backend::before  { background: linear-gradient(90deg,#3fb950,#238636); }
+  .tier-security { background: #1a1208; border-color: #7d4e00; }
+  .tier-security::before { background: #e3b341; }
+  .tier-ibm      { background: #12101e; border-color: #5b3fa6; }
+  .tier-ibm::before      { background: linear-gradient(90deg,#a371f7,#7c5cd8); }
+  .tier-agents   { background: #0d1a12; border-color: #1a6e35; }
+  .tier-agents::before   { background: linear-gradient(90deg,#3fb950,#2ea043); }
+
+  .tier-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .tier-user .tier-title    { color: #58a6ff; }
+  .tier-frontend .tier-title { color: #58a6ff; }
+  .tier-backend .tier-title  { color: #3fb950; }
+  .tier-security .tier-title { color: #e3b341; }
+  .tier-ibm .tier-title      { color: #a371f7; }
+  .tier-agents .tier-title   { color: #3fb950; }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    border-radius: 5px; padding: 4px 9px;
+    font-size: 12px; font-weight: 500;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .chip-blue   { background: #0d2044; border-color: #2563b0; color: #58a6ff; }
+  .chip-green  { background: #0d2a14; border-color: #238636; color: #3fb950; }
+  .chip-purple { background: #1a0d33; border-color: #5b3fa6; color: #a371f7; }
+  .chip-amber  { background: #1a1208; border-color: #7d4e00; color: #e3b341; }
+  .chip-gray   { background: #1c2128; border-color: #30363d; color: #8b949e; }
+  .chip-red    { background: #1f0f0f; border-color: #7d2020; color: #f87171; }
+
+  .chip .dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  /* ── Security boundary callout ── */
+  .security-fence {
+    border: 1.5px dashed #7d4e00;
+    border-radius: 10px;
+    padding: 12px 16px;
+    background: #1a1208;
+    margin-bottom: 36px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .security-fence .icon {
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .security-fence p {
+    font-size: 12.5px;
+    color: #e3b341;
+    line-height: 1.6;
+  }
+  .security-fence strong { color: #f0c040; }
+
+  /* ── Two-column flow panels ── */
+  .flow-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+  @media (max-width: 620px) { .flow-grid { grid-template-columns: 1fr; } }
+
+  .flow-panel {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .flow-panel-header {
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    border-bottom: 1px solid #21262d;
+  }
+  .flow-panel-header.purple { background: #1a0d33; color: #a371f7; }
+  .flow-panel-header.blue   { background: #0d1e3a; color: #58a6ff; }
+  .flow-panel-body { padding: 12px 14px; }
+
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid #21262d;
+    font-size: 12px;
+  }
+  .flow-step:last-child { border-bottom: none; }
+  .step-num {
+    width: 20px; height: 20px; border-radius: 50%;
+    font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .step-num.blue   { background: #2563b0; color: #fff; }
+  .step-num.purple { background: #5b3fa6; color: #fff; }
+  .step-num.green  { background: #238636; color: #fff; }
+  .step-body { flex: 1; }
+  .step-title { font-weight: 600; color: #e6edf3; margin-bottom: 2px; }
+  .step-detail { color: #8b949e; font-size: 11px; font-family: "SF Mono", "Fira Code", monospace; line-height: 1.5; }
+
+  /* ── API table ── */
+  .api-table-wrap {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 36px;
+  }
+  .api-table-header {
+    padding: 10px 14px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    background: #1c2128; color: #3fb950;
+    border-bottom: 1px solid #21262d;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { padding: 8px 12px; text-align: left; background: #1c2128; color: #8b949e;
+       font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
+       border-bottom: 1px solid #21262d; }
+  td { padding: 8px 12px; border-bottom: 1px solid #21262d; color: #e6edf3; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  code {
+    font-family: "SF Mono","Fira Code",monospace; font-size: 11px;
+    background: #1c2128; border-radius: 4px; padding: 1px 5px; color: #58a6ff;
+  }
+  .method { font-family: "SF Mono","Fira Code",monospace; font-size: 11px;
+            font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+  .method-get  { background: #0d3321; color: #3fb950; }
+  .method-post { background: #0d1e3a; color: #58a6ff; }
+  .method-put  { background: #2a1a00; color: #e3b341; }
+  .source-badge { font-size: 10.5px; padding: 2px 7px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+  .src-orch { background: #1a0d33; color: #a371f7; border: 1px solid #5b3fa6; }
+  .src-gran { background: #0d1e3a; color: #58a6ff; border: 1px solid #2563b0; }
+  .src-mem  { background: #0d2a14; color: #3fb950; border: 1px solid #238636; }
+
+  /* ── Agent map ── */
+  .agent-grid {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 0;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 36px;
+  }
+  .agent-primary {
+    background: #12101e;
+    border-right: 1px solid #30363d;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-align: center;
+  }
+  .agent-primary-icon {
+    width: 52px; height: 52px; border-radius: 12px;
+    background: linear-gradient(135deg,#5b3fa6,#a371f7);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+  }
+  .agent-primary-name { font-size: 13px; font-weight: 700; color: #e6edf3; }
+  .agent-primary-sub  { font-size: 11px; color: #8b949e; }
+  .agent-primary-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+    background: #0d3321; color: #3fb950; border: 1px solid #238636;
+  }
+  .agent-collaborators {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .agent-collab-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .1em; color: #484f58; margin-bottom: 4px;
+  }
+  .agent-collab-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    background: #1c2128;
+    border-radius: 7px;
+    border: 1px solid #30363d;
+  }
+  .agent-collab-icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .ac-workout  { background: #0d2a14; }
+  .ac-nutrition { background: #2a1a00; }
+  .ac-habit    { background: #0d2044; }
+  .ac-checkin  { background: #1f0f1a; }
+  .agent-collab-info { flex: 1; }
+  .agent-collab-name { font-size: 12.5px; font-weight: 600; color: #e6edf3; }
+  .agent-collab-desc { font-size: 11px; color: #8b949e; }
+  .preserved-badge {
+    font-size: 10px; padding: 1px 6px; border-radius: 20px;
+    background: #0d3321; color: #3fb950; border: 1px solid #238636;
+    white-space: nowrap;
+  }
+  @media (max-width: 560px) {
+    .agent-grid { grid-template-columns: 1fr; }
+    .agent-primary { border-right: none; border-bottom: 1px solid #30363d; }
+  }
+
+  /* ── Env vars ── */
+  .env-block {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 18px 20px;
+    font-family: "SF Mono","Fira Code",monospace;
+    font-size: 12px;
+    line-height: 2;
+    margin-bottom: 36px;
+    overflow-x: auto;
+  }
+  .ev-section { color: #e3b341; font-weight: 700; }
+  .ev-key   { color: #79c0ff; }
+  .ev-eq    { color: #8b949e; }
+  .ev-val   { color: #a5d6a7; }
+  .ev-cmt   { color: #484f58; }
+
+  /* ── Tech stack grid ── */
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 36px;
+  }
+  @media (max-width: 620px) { .stack-grid { grid-template-columns: 1fr 1fr; } }
+  .stack-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .stack-card-title {
+    font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .09em; color: #8b949e; margin-bottom: 10px;
+  }
+  .stack-card ul { list-style: none; }
+  .stack-card ul li {
+    font-size: 12.5px; color: #e6edf3; padding: 3px 0;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .stack-card ul li::before {
+    content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+  }
+  .stack-card.fe ul li::before { background: #58a6ff; }
+  .stack-card.be ul li::before { background: #3fb950; }
+  .stack-card.ai ul li::before { background: #a371f7; }
+
+  /* ── Adaptive table ── */
+  .adaptive-grid {
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 10px;
+    margin-bottom: 36px;
+  }
+  @media (max-width: 640px) { .adaptive-grid { grid-template-columns: 1fr 1fr; } }
+  .adapt-card {
+    border-radius: 8px;
+    border: 1px solid;
+    padding: 12px;
+  }
+  .adapt-card.easy   { background: #0d2044; border-color: #2563b0; }
+  .adapt-card.perfect { background: #0d2a14; border-color: #238636; }
+  .adapt-card.hard   { background: #2a1208; border-color: #7d3a00; }
+  .adapt-card.nc     { background: #1f0f0f; border-color: #7d2020; }
+  .adapt-fb { font-size: 11px; font-weight: 700; font-family: "SF Mono","Fira Code",monospace; margin-bottom: 6px; }
+  .adapt-card.easy .adapt-fb   { color: #58a6ff; }
+  .adapt-card.perfect .adapt-fb { color: #3fb950; }
+  .adapt-card.hard .adapt-fb   { color: #e3b341; }
+  .adapt-card.nc .adapt-fb     { color: #f87171; }
+  .adapt-desc { font-size: 11.5px; color: #8b949e; line-height: 1.5; }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center; margin-top: 40px;
+    padding-top: 16px; border-top: 1px solid #21262d;
+    font-size: 11px; color: #484f58;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  
+  <div class="header">
+    <div class="header-eyebrow">⚡ AI-Powered Fitness Application</div>
+    <h1>Fitness Buddy — Architecture Blueprint</h1>
+    <p>React + Node.js/TypeScript  ·  IBM watsonx.ai (Granite)  ·  IBM watsonx Orchestrate  ·  Production-Ready MVP</p>
+  </div>
+
+  
+  <div class="section-label">System Architecture — Full Stack View</div>
+
+  <div class="arch-diagram">
+
+    
+    <div class="tier-row">
+      <div class="tier-card tier-user">
+        <div class="tier-title">👤 User</div>
+        <div class="chip-row">
+          <span class="chip chip-blue"><span class="dot" style="background:#58a6ff"></span>Web Browser</span>
+          <span class="chip chip-gray">localhost:5173 (dev)</span>
+          <span class="chip chip-gray">your-domain.com (prod)</span>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="tier-connector" style="padding-left:40px;gap:24px">
+      <div class="conn-line">
+        <div class="conn-dot" style="background:#58a6ff"></div>
+        <div class="conn-dash" style="background:#30363d"></div>
+        <div class="conn-dash" style="background:#30363d"></div>
+        <div class="conn-dash" style="background:#30363d"></div>
+        <div class="conn-arrow" style="border-top:7px solid #30363d"></div>
+      </div>
+      <span class="conn-label">React fetch()  |  /api/…  |  x-session-id header  |  No IBM credentials in browser</span>
+    </div>
+
+    
+    <div class="tier-row">
+      <div class="tier-card tier-frontend">
+        <div class="tier-title">⚙ Frontend — React SPA</div>
+        <div class="chip-row">
+          <span class="chip chip-blue"><span class="dot" style="background:#58a6ff"></span>React 18</span>
+          <span class="chip chip-blue"><span class="dot" style="background:#58a6ff"></span>TypeScript</span>
+          <span class="chip chip-blue"><span class="dot" style="background:#58a6ff"></span>Vite</span>
+          <span class="chip chip-blue"><span class="dot" style="background:#58a6ff"></span>React Router v6</span>
+          <span class="chip chip-gray">7 Pages</span>
+          <span class="chip chip-gray">10 Components</span>
+          <span class="chip chip-gray">api.ts service layer</span>
+          <span class="chip chip-gray">useFitnessBuddy hook</span>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="tier-connector" style="padding-left:40px;gap:24px">
+      <div class="conn-line">
+        <div class="conn-dot" style="background:#3fb950"></div>
+        <div class="conn-dash" style="background:#30363d"></div>
+        <div class="conn-dash" style="background:#30363d"></div>
+        <div class="conn-dash" style="background:#30363d"></div>
+        <div class="conn-arrow" style="border-top:7px solid #30363d"></div>
+      </div>
+      <span class="conn-label">HTTPS REST  |  JSON  |  Vite proxy in dev (:5173 → :3000)  |  50 KB body limit</span>
+    </div>
+
+    
+    <div class="tier-row">
+      <div class="tier-card tier-backend">
+        <div class="tier-title">⛰ Backend — Node.js + Express</div>
+        <div class="chip-row">
+          <span class="chip chip-green"><span class="dot" style="background:#3fb950"></span>Node.js</span>
+          <span class="chip chip-green"><span class="dot" style="background:#3fb950"></span>Express</span>
+          <span class="chip chip-green"><span class="dot" style="background:#3fb950"></span>TypeScript</span>
+          <span class="chip chip-amber">helmet</span>
+          <span class="chip chip-amber">CORS</span>
+          <span class="chip chip-amber">dotenv</span>
+          <span class="chip chip-gray">6 routes</span>
+          <span class="chip chip-gray">6 controllers</span>
+          <span class="chip chip-gray">5 services</span>
+          <span class="chip chip-gray">localhost:3000</span>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="tier-connector" style="justify-content:space-around;padding:10px 60px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+        <div class="conn-line">
+          <div class="conn-dot" style="background:#e3b341"></div>
+          <div class="conn-dash" style="background:#7d4e00"></div>
+          <div class="conn-dash" style="background:#7d4e00"></div>
+          <div class="conn-dash" style="background:#7d4e00"></div>
+          <div class="conn-arrow" style="border-top:7px solid #7d4e00"></div>
+        </div>
+        <span class="conn-label" style="color:#e3b341">IBM Cloud IAM token exchange</span>
+        <span class="conn-label" style="color:#484f58;font-size:10px">iam.cloud.ibm.com/identity/token</span>
+      </div>
+      <div style="font-size:12px;color:#484f58;align-self:center;padding-bottom:20px">+</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+        <div class="conn-line">
+          <div class="conn-dot" style="background:#e3b341"></div>
+          <div class="conn-dash" style="background:#7d4e00"></div>
+          <div class="conn-dash" style="background:#7d4e00"></div>
+          <div class="conn-dash" style="background:#7d4e00"></div>
+          <div class="conn-arrow" style="border-top:7px solid #7d4e00"></div>
+        </div>
+        <span class="conn-label" style="color:#e3b341">IBM Cloud IAM token exchange</span>
+        <span class="conn-label" style="color:#484f58;font-size:10px">Separate cache per service</span>
+      </div>
+    </div>
+
+    
+    <div class="tier-row">
+      <div class="tier-card tier-ibm" style="flex:1;margin-right:8px">
+        <div class="tier-title">🤖 IBM watsonx.ai</div>
+        <div class="chip-row">
+          <span class="chip chip-purple"><span class="dot" style="background:#a371f7"></span>ibm/granite-4-h-small</span>
+          <span class="chip chip-gray">eu-de.ml.cloud.ibm.com</span>
+          <span class="chip chip-gray">/ml/v1/text/generation</span>
+          <span class="chip chip-gray">version: 2025-05-29</span>
+          <span class="chip chip-gray">max_new_tokens: 500</span>
+        </div>
+      </div>
+      <div class="tier-card tier-ibm" style="flex:1">
+        <div class="tier-title">🌍 IBM watsonx Orchestrate</div>
+        <div class="chip-row">
+          <span class="chip chip-purple"><span class="dot" style="background:#a371f7"></span>Run API</span>
+          <span class="chip chip-gray">jp-tok region</span>
+          <span class="chip chip-gray">/v1/orchestrate/runs</span>
+          <span class="chip chip-gray">Poll every 2s · 90s timeout</span>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="tier-connector" style="padding-left:40px;gap:24px">
+      <div class="conn-line">
+        <div class="conn-dot" style="background:#3fb950"></div>
+        <div class="conn-dash" style="background:#238636"></div>
+        <div class="conn-dash" style="background:#238636"></div>
+        <div class="conn-dash" style="background:#238636"></div>
+        <div class="conn-arrow" style="border-top:7px solid #238636"></div>
+      </div>
+      <span class="conn-label" style="color:#3fb950">Orchestrate routes to specialist collaborators internally (Phase 2 agents — preserved, not recreated)</span>
+    </div>
+
+    
+    <div class="tier-row">
+      <div class="tier-card tier-agents">
+        <div class="tier-title">🤝 Fitness Buddy Agents — Phase 2 (Existing)</div>
+        <div class="chip-row">
+          <span class="chip chip-purple"><span class="dot" style="background:#a371f7"></span>Primary Agent (Entry point)</span>
+          <span class="chip chip-green"><span class="dot" style="background:#3fb950"></span>Workout Coach</span>
+          <span class="chip chip-green"><span class="dot" style="background:#3fb950"></span>Nutrition Coach</span>
+          <span class="chip chip-green"><span class="dot" style="background:#3fb950"></span>Habit Coach</span>
+          <span class="chip chip-green"><span class="dot" style="background:#3fb950"></span>Daily Check-in</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  
+  <div class="security-fence">
+    <div class="icon">🔒</div>
+    <p>
+      <strong>Security Boundary — Strictly Enforced:</strong>
+       <code style="background:#2a1a00;color:#e3b341;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:11px">WATSONX_API_KEY</code>
+      and
+      <code style="background:#2a1a00;color:#e3b341;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:11px">ORCHESTRATE_API_KEY</code>
+      exist only in <code style="background:#2a1a00;color:#e3b341;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:11px">backend/.env</code>.
+      They are exchanged for short-lived IAM bearer tokens at runtime, cached in server memory only,
+      and <strong>never sent to the React frontend, never written to logs, never committed to Git</strong>.
+    </p>
+  </div>
+
+  
+  <div class="section-label">AI Integration Flows</div>
+  <div class="flow-grid">
+
+    
+    <div class="flow-panel">
+      <div class="flow-panel-header blue">⚡ IBM Granite Flow — watsonxService.ts</div>
+      <div class="flow-panel-body">
+        <div class="flow-step">
+          <div class="step-num blue">1</div>
+          <div class="step-body">
+            <div class="step-title">IAM Token Exchange</div>
+            <div class="step-detail">POST iam.cloud.ibm.com/identity/token<br />apikey=WATSONX_API_KEY → Bearer (55 min cache)</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num blue">2</div>
+          <div class="step-body">
+            <div class="step-title">Build Prompt</div>
+            <div class="step-detail">System instructions + user context<br />+ last 6 conversation turns<br />Plain-text instruct format (not Llama tokens)</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num blue">3</div>
+          <div class="step-body">
+            <div class="step-title">Inference Call</div>
+            <div class="step-detail">POST {WATSONX_URL}/ml/v1/text/generation<br />?version=2025-05-29<br />model_id = WATSONX_MODEL_ID<br />max_new_tokens: 500, greedy decoding</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num green">4</div>
+          <div class="step-body">
+            <div class="step-title">Return Response</div>
+            <div class="step-detail">results[0].generated_text → trim<br />→ chatService → frontend JSON</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="flow-panel">
+      <div class="flow-panel-header purple">🌍 Orchestrate Flow — orchestrateService.ts</div>
+      <div class="flow-panel-body">
+        <div class="flow-step">
+          <div class="step-num purple">1</div>
+          <div class="step-body">
+            <div class="step-title">IAM Token Exchange</div>
+            <div class="step-detail">POST iam.cloud.ibm.com/identity/token<br />apikey=ORCHESTRATE_API_KEY → Bearer (separate cache)</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num purple">2</div>
+          <div class="step-body">
+            <div class="step-title">Enrich Message</div>
+            <div class="step-detail">"Create workout [User Context: Goal: weight<br />management, Level: beginner, Time: 30 min…]"</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num purple">3</div>
+          <div class="step-body">
+            <div class="step-title">Start Run</div>
+            <div class="step-detail">POST /v1/orchestrate/runs<br />{ agent_id, message: { role:"user", content } }<br />→ run_id, thread_id</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num purple">4</div>
+          <div class="step-body">
+            <div class="step-title">Poll Run Status</div>
+            <div class="step-detail">GET /v1/orchestrate/runs/{run_id}<br />Every 2 s · terminal: completed|failed|cancelled<br />Timeout: 90 s</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num purple">5</div>
+          <div class="step-body">
+            <div class="step-title">Read Reply</div>
+            <div class="step-detail">GET /v1/orchestrate/threads/{thread_id}/messages<br />→ last role=assistant message → content[].text</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num green">6</div>
+          <div class="step-body">
+            <div class="step-title">Return + Fallback</div>
+            <div class="step-detail">text + specialist label → frontend<br />If unavailable → automatic Granite fallback</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  
+  <div class="section-label">IBM watsonx Orchestrate — Phase 2 Agents (Preserved)</div>
+  <div class="agent-grid">
+    <div class="agent-primary">
+      <div class="agent-primary-icon">🤖</div>
+      <div class="agent-primary-name">Fitness Buddy</div>
+      <div class="agent-primary-sub">Primary Agent<br />Entry point for all requests</div>
+      <div class="agent-primary-badge">✓ Live v4</div>
+      <div style="font-size:10.5px;color:#484f58;margin-top:6px;line-height:1.5">
+        Agent ID configured via<br /><code style="color:#a371f7;font-family:monospace;font-size:10.5px">ORCHESTRATE_AGENT_ID</code>
+      </div>
+    </div>
+    <div class="agent-collaborators">
+      <div class="agent-collab-title">Collaborator Sub-Agents (routed internally by Orchestrate)</div>
+      <div class="agent-collab-row">
+        <div class="agent-collab-icon ac-workout">🏃</div>
+        <div class="agent-collab-info">
+          <div class="agent-collab-name">Workout Coach</div>
+          <div class="agent-collab-desc">Exercise planning, sets/reps, adaptive difficulty</div>
+        </div>
+        <span class="preserved-badge">✓ Preserved</span>
+      </div>
+      <div class="agent-collab-row">
+        <div class="agent-collab-icon ac-nutrition">🫕</div>
+        <div class="agent-collab-info">
+          <div class="agent-collab-name">Nutrition Coach</div>
+          <div class="agent-collab-desc">Meal planning, dietary guidance, substitutions</div>
+        </div>
+        <span class="preserved-badge">✓ Preserved</span>
+      </div>
+      <div class="agent-collab-row">
+        <div class="agent-collab-icon ac-habit">📅</div>
+        <div class="agent-collab-info">
+          <div class="agent-collab-name">Habit Coach</div>
+          <div class="agent-collab-desc">Streaks, consistency, daily routines</div>
+        </div>
+        <span class="preserved-badge">✓ Preserved</span>
+      </div>
+      <div class="agent-collab-row">
+        <div class="agent-collab-icon ac-checkin">✅</div>
+        <div class="agent-collab-info">
+          <div class="agent-collab-name">Daily Check-in</div>
+          <div class="agent-collab-desc">Energy + soreness → workout recommendation</div>
+        </div>
+        <span class="preserved-badge">✓ Preserved</span>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="section-label">REST API Endpoints</div>
+  <div class="api-table-wrap">
+    <div class="api-table-header">🔗 Backend API — localhost:3000</div>
+    <table>
+      <tr>
+        <th>Method</th><th>Path</th><th>Description</th><th>AI Source</th>
+      </tr>
+      <tr>
+        <td><span class="method method-get">GET</span></td>
+        <td><code>/health</code></td>
+        <td>Liveness probe — service name + timestamp</td>
+        <td><span class="source-badge src-mem">Express</span></td>
+      </tr>
+      <tr>
+        <td><span class="method method-post">POST</span></td>
+        <td><code>/api/chat</code></td>
+        <td>Main AI chat — Orchestrate first, Granite fallback</td>
+        <td><span class="source-badge src-orch">Orchestrate / Granite</span></td>
+      </tr>
+      <tr>
+        <td><span class="method method-post">POST</span></td>
+        <td><code>/api/workouts</code></td>
+        <td>Generate workout plan for user context</td>
+        <td><span class="source-badge src-gran">Granite</span></td>
+      </tr>
+      <tr>
+        <td><span class="method method-post">POST</span></td>
+        <td><code>/api/nutrition</code></td>
+        <td>Generate meal plan (full day or single meal)</td>
+        <td><span class="source-badge src-gran">Granite</span></td>
+      </tr>
+      <tr>
+        <td><span class="method method-post">POST</span></td>
+        <td><code>/api/checkin</code></td>
+        <td>Energy + soreness + time → recommendation</td>
+        <td><span class="source-badge src-orch">Orchestrate / Granite</span></td>
+      </tr>
+      <tr>
+        <td><span class="method method-post">POST</span></td>
+        <td><code>/api/progress/complete-workout</code></td>
+        <td>Mark complete · update streak + adaptive feedback</td>
+        <td><span class="source-badge src-mem">In-Memory</span></td>
+      </tr>
+      <tr>
+        <td><span class="method method-get">GET</span></td>
+        <td><code>/api/progress</code></td>
+        <td>Streak, totals, completion rate, history</td>
+        <td><span class="source-badge src-mem">In-Memory</span></td>
+      </tr>
+      <tr>
+        <td><span class="method method-get">GET</span></td>
+        <td><code>/api/profile</code></td>
+        <td>Fetch user profile (demo pre-loaded)</td>
+        <td><span class="source-badge src-mem">In-Memory</span></td>
+      </tr>
+      <tr>
+        <td><span class="method method-post">POST</span></td>
+        <td><code>/api/profile</code></td>
+        <td>Create new user profile</td>
+        <td><span class="source-badge src-mem">In-Memory</span></td>
+      </tr>
+      <tr>
+        <td><span class="method method-put">PUT</span></td>
+        <td><code>/api/profile/:id</code></td>
+        <td>Update existing profile</td>
+        <td><span class="source-badge src-mem">In-Memory</span></td>
+      </tr>
+    </table>
+  </div>
+
+  
+  <div class="section-label">Environment Variables — backend/.env</div>
+  <div class="env-block">
+<span class="ev-section"># ── IBM watsonx.ai (Granite) ─────────────────────────────────────────────</span>
+<span class="ev-key">WATSONX_API_KEY</span><span class="ev-eq">=</span><span class="ev-val">&lt;44-char IBM Cloud API key&gt;</span>          <span class="ev-cmt">← never committed to Git</span>
+<span class="ev-key">WATSONX_PROJECT_ID</span><span class="ev-eq">=</span><span class="ev-val">&lt;watsonx.ai project UUID&gt;</span>
+<span class="ev-key">WATSONX_URL</span><span class="ev-eq">=</span><span class="ev-val">https://eu-de.ml.cloud.ibm.com</span>         <span class="ev-cmt">← Frankfurt region</span>
+<span class="ev-key">WATSONX_MODEL_ID</span><span class="ev-eq">=</span><span class="ev-val">ibm/granite-4-h-small</span>               <span class="ev-cmt">← configurable, not hardcoded</span>
+
+<span class="ev-section"># ── IBM watsonx Orchestrate ──────────────────────────────────────────────</span>
+<span class="ev-key">ORCHESTRATE_URL</span><span class="ev-eq">=</span><span class="ev-val">https://api.jp-tok.watson-orchestrate.cloud.ibm.com/instances/&lt;id&gt;</span>
+<span class="ev-key">ORCHESTRATE_API_KEY</span><span class="ev-eq">=</span><span class="ev-val">&lt;44-char IBM Cloud API key&gt;</span>        <span class="ev-cmt">← exchanged for IAM token at runtime</span>
+<span class="ev-key">ORCHESTRATE_AGENT_ID</span><span class="ev-eq">=</span><span class="ev-val">&lt;Primary Agent UUID&gt;</span>
+<span class="ev-key">ORCHESTRATE_ENVIRONMENT</span><span class="ev-eq">=</span><span class="ev-val">live</span>
+
+<span class="ev-section"># ── Server ────────────────────────────────────────────────────────────────</span>
+<span class="ev-key">PORT</span><span class="ev-eq">=</span><span class="ev-val">3000</span>
+<span class="ev-key">FRONTEND_URL</span><span class="ev-eq">=</span><span class="ev-val">http://localhost:5173</span>
+<span class="ev-key">DEBUG</span><span class="ev-eq">=</span><span class="ev-val">false</span>
+  </div>
+
+  
+  <div class="section-label">Adaptive Workout Logic</div>
+  <div class="adaptive-grid">
+    <div class="adapt-card easy">
+      <div class="adapt-fb">too_easy</div>
+      <div class="adapt-desc">Streak counts. Next prompt: increase difficulty slightly. No aggressive changes on single session.</div>
+    </div>
+    <div class="adapt-card perfect">
+      <div class="adapt-fb">perfect</div>
+      <div class="adapt-desc">Streak extended. Completion rate up. Maintain or gradually progress next session.</div>
+    </div>
+    <div class="adapt-card hard">
+      <div class="adapt-fb">too_hard</div>
+      <div class="adapt-desc">No streak penalty. Next prompt: reduce volume or use easier variations. No shame messaging.</div>
+    </div>
+    <div class="adapt-card nc">
+      <div class="adapt-fb">not_completed</div>
+      <div class="adapt-desc">Counted in history. No streak break. Next prompt: shorter, more achievable session.</div>
+    </div>
+  </div>
+
+  
+  <div class="section-label">Technology Stack</div>
+  <div class="stack-grid">
+    <div class="stack-card fe">
+      <div class="stack-card-title">💻 Frontend</div>
+      <ul>
+        <li>React 18</li>
+        <li>TypeScript</li>
+        <li>Vite</li>
+        <li>React Router v6</li>
+        <li>CSS Design System (dark)</li>
+        <li>Responsive + Accessible</li>
+      </ul>
+    </div>
+    <div class="stack-card be">
+      <div class="stack-card-title">⌨ Backend</div>
+      <ul>
+        <li>Node.js + Express</li>
+        <li>TypeScript (strict)</li>
+        <li>tsx (dev) / tsc (build)</li>
+        <li>helmet + CORS + dotenv</li>
+        <li>Jest (14 tests)</li>
+        <li>Centralized error handler</li>
+      </ul>
+    </div>
+    <div class="stack-card ai">
+      <div class="stack-card-title">🤖 IBM AI</div>
+      <ul>
+        <li>IBM Granite (watsonx.ai)</li>
+        <li>IBM watsonx Orchestrate</li>
+        <li>IBM Cloud IAM (auth)</li>
+        <li>Run API (execution)</li>
+        <li>Token caching (server)</li>
+        <li>Granite fallback</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>Made with IBM Bob</footer>
+
+</div>
+</body>
+</html>
